@@ -3,22 +3,24 @@ import NotefulForm from '../NotefulForm/NotefulForm'
 import ApiContext from '../ApiContext'
 import config from '../config'
 import './AddNote.css'
+import ErrorBoundary from '../ErrorBoundaries/ErrorBoundary';
 
 export default class AddNote extends Component {
-  static defaultProps = {
-    history: {
-      push: () => { }
-    },
+  constructor(props) {
+    super(props);
+    this.noteName = React.createRef();
+    this.noteContent = React.createRef();
+    this.noteFolderID = React.createRef();
   }
+
   static contextType = ApiContext;
 
   handleSubmit = e => {
     e.preventDefault()
     const newNote = {
-      name: e.target['note-name'].value,
-      content: e.target['note-content'].value,
-      folderId: e.target['note-folder-id'].value,
-      modified: new Date(),
+      name: this.noteName.current.value,
+      content: this.noteContent.current.value,
+      folderId: this.noteFolderID.current.value,
     }
     fetch(`${config.API_ENDPOINT}/notes`, {
       method: 'POST',
@@ -29,7 +31,7 @@ export default class AddNote extends Component {
     })
       .then(res => {
         if (!res.ok)
-          return res.json().then(e => Promise.reject(e))
+          throw new Error('Something went wrong')
         return res.json()
       })
       .then(note => {
@@ -44,40 +46,42 @@ export default class AddNote extends Component {
   render() {
     const { folders=[] } = this.context
     return (
-      <section className='AddNote'>
-        <h2>Create a note</h2>
-        <NotefulForm onSubmit={this.handleSubmit}>
-          <div className='field'>
-            <label htmlFor='note-name-input'>
-              Name
-            </label>
-            <input type='text' id='note-name-input' name='note-name' />
-          </div>
-          <div className='field'>
-            <label htmlFor='note-content-input'>
-              Content
-            </label>
-            <textarea id='note-content-input' name='note-content' />
-          </div>
-          <div className='field'>
-            <label htmlFor='note-folder-select'>
-              Folder
-            </label>
-            <select id='note-folder-select' name='note-folder-id'>
-              <option value={null}>...</option>
-              {folders.map(folder =>
-                <option key={folder.id} value={folder.id}>
-                  {folder.name}
-                </option>
-              )}
-            </select>
-          </div>
-          <div className='buttons'>
-            <button type='submit'>
-              Add note
-            </button>
-          </div>
-        </NotefulForm>
+      <section className='NoteAddition'>
+        <ErrorBoundary>
+          <h2>Create a note</h2>
+          <form onSubmit={this.handleSubmit}>
+            <div className='field'>
+              <label htmlFor='note-name-input'>
+                Name
+              </label>
+              <input type='text' id='note-name-input' ref={this.noteName} />
+            </div>
+            <div className='field'>
+              <label htmlFor='note-content-input'>
+                Content
+              </label>
+              <textarea id='note-content-input' ref={this.noteContent} />
+            </div>
+            <div className='field'>
+              <label htmlFor='note-folder-select'>
+                Folder
+              </label>
+              <select id='note-folder-select' ref={this.noteFolderID}>
+                <option value={null}>... </option>
+                {folders.map(folder =>
+                  <option key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </option>
+                )}
+              </select>
+            </div>
+            <div className='buttons'>
+              <button type='submit'>
+                Add note
+              </button>
+            </div>
+          </form>
+        </ErrorBoundary>
       </section>
     )
   }
